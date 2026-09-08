@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:                             # a human push to the monitor's own files runs it immediately
     branches: [main]                # (bot commits made with GITHUB_TOKEN never re-trigger this)
-    paths: ["pull_kalshi.py", "index.html", ".github/workflows/kalshi.yml"]
+    paths: ["kalshi/**", ".github/workflows/kalshi.yml"]
 permissions:
   contents: write
   pages: write
@@ -26,12 +26,12 @@ jobs:
           python-version: "3.12"
       - run: pip install --quiet requests numpy pandas
       - name: Pull Kalshi markets
-        run: python pull_kalshi.py
+        run: python kalshi/pull_kalshi.py
       - name: Commit the snapshot
         run: |
           git config user.name "signal-live bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data.json history.json
+          git add kalshi/data.json kalshi/history.json
           git diff --cached --quiet || git commit -m "kalshi: $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
       # commits made with GITHUB_TOKEN do not trigger the push workflow, so deploy from here

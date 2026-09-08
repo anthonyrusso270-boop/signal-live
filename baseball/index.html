@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLB odds ledger</title>
+<meta name="description" content="Bovada's MLB board from posting to first pitch, closing lines graded against final and first-five scores, and calibration of the market's own favourites.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0e13;--bg2:#10151d;--card:#131a24;--line:rgba(127,140,163,.20);--fg:#e6edf3;--mute:#8b98a5;--dim:#5c6877;--acc:#e8b04a;--blue:#4c8fd6;--green:#5cb88a;--red:#e0777d;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;--sans:"Manrope",system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+*{box-sizing:border-box}html{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14.5px;line-height:1.45}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 22px 60px}
+header{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:28px;font-weight:800}
+header .tag{color:var(--mute);margin-top:4px;font-size:15px}
+.meta{color:var(--dim);font-family:var(--mono);font-size:12px;margin-top:10px}
+.nav{font-family:var(--mono);font-size:12.5px;display:flex;gap:16px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:18px 0 6px}
+.chip{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.chip .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.chip .v{font-family:var(--mono);font-size:22px;margin-top:2px;line-height:1.1}
+.chip .s{color:var(--mute);font-size:12px;margin-top:3px}
+h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:30px 0 12px;font-weight:700}
+h2 span{color:var(--dim);font-weight:500;letter-spacing:0;text-transform:none;margin-left:10px;font-size:12.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.card h3{margin:0 0 2px;font-size:16px}.card .sub{color:var(--mute);font-size:12.5px;margin-bottom:8px}
+table.stats{border-collapse:collapse;font-family:var(--mono);font-size:12px;width:100%}
+table.stats th{color:var(--mute);font-weight:500;text-align:right;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.stats td{text-align:right;padding:5px 8px;border-bottom:1px solid rgba(127,140,163,.09);white-space:nowrap}
+table.stats th:first-child,table.stats td:first-child{text-align:left;white-space:normal}
+.tblwrap{overflow-x:auto}.cap{color:var(--dim);font-size:12px;margin:6px 0 0}
+.up{color:var(--green)}.dn{color:var(--red)}.win{color:var(--green)}.loss{color:var(--red)}.push{color:var(--mute)}
+.verdict{font-size:13.2px;border-left:3px solid var(--acc);padding:4px 0 4px 10px;margin-top:10px}
+.verdict::before{content:"Read · ";color:var(--acc);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.err{color:var(--red);font-family:var(--mono);font-size:12px}
+.method{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:14px 18px;font-size:13.5px}
+footer{color:var(--dim);font-family:var(--mono);font-size:12px;margin-top:32px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){.wrap{padding:18px 14px 40px}header h1{font-size:24px}.chip .v{font-size:19px}}
+</style>
+</head>
+<body><div class="wrap">
+<header>
+  <div><h1>MLB odds ledger</h1><div class="tag">Bovada's board from posting to first pitch, then graded against the box score</div><div class="meta" id="meta">loading…</div></div>
+  <div class="nav"><a href="../">← signal-live</a><a href="https://github.com/anthonyrusso270-boop/signal-live" target="_blank" rel="noopener">source ↗</a></div>
+</header>
+<div class="chips" id="chips"></div>
+<div id="root"></div>
+<h2>How to read it</h2>
+<div class="method">Prices are Bovada's American odds; <b>implied</b> is the vig-inclusive probability and <b>fair</b> removes the overround proportionally. <b>Move</b> is the change in a side's implied probability since the first snapshot on file. Grading uses the MLB Stats API box score: the full-game moneyline is settled from the closing favourite's side, totals push at the number, the first-five moneyline pushes on a tie and the 3-way tie contract settles on its own. <b>Closing line</b> = last snapshot before first pitch; <b>CLV</b> = closing minus opening implied for the settled side. Calibration compares the closing fair probability of the favourite with how often the favourite actually won: a market that prices correctly sits on the diagonal. There are no picks on this page; it is the record any model has to beat.</div>
+<footer id="foot"></footer>
+</div>
+<script>
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = v => v == null ? "—" : (v * 100).toFixed(v * 100 < 9.95 ? 1 : 0) + "%";
+const pp = v => v == null ? "" : `<span class="${v > 0 ? 'up' : (v < 0 ? 'dn' : '')}">${v > 0 ? "+" : ""}${(v * 100).toFixed(1)}pp</span>`;
+const odds = a => a == null ? "—" : (String(a).toUpperCase() === "EVEN" ? "EVEN" : (/^[+-]/.test(String(a)) ? String(a) : (Number(a) > 0 ? "+" + a : String(a))));
+const table = rows => { const [h, ...b] = rows; return `<div class="tblwrap"><table class="stats"><thead><tr>${h.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${b.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; };
+const card = (t, s, b, r) => `<div class="card"><h3>${esc(t)}</h3><div class="sub">${s}</div>${b}${r ? `<div class="verdict">${esc(r)}</div>` : ""}</div>`;
+
+function side(mk, name, pred) { const m = mk[name]; if (!m) return null; return m.outcomes.find(pred) || null; }
+function boardSection(B) {
+  const st = B.status;
+  if (!B.games.length) return `<h2>Board <span>no games on file that have not started</span></h2><div class="cap">${st.ok ? "Bovada returned an empty pre-match board (off-day or between slates)." : `last pull failed: ${esc(st.error)}`}</div>`;
+  const rows = [["game", "start", "pulls", "moneyline (fair)", "move", "total", "F5 moneyline (fair)", "F5 tie", "F5 total"]];
+  const moves = [];
+  B.games.forEach(g => {
+    const [away, home] = g.event.split("@").map(s => s.trim());
+    const mk = g.markets;
+    const ml = mk["Game · Moneyline"], f5 = mk["First 5 Innings · Moneyline"], f53 = mk["First 5 Innings · 3-Way Moneyline"], tot = mk["Game · Total"], f5t = mk["First 5 Innings · Total"];
+    const fmtML = (m) => m ? m.outcomes.map(o => `${esc(o.outcome.replace(" - 1H", "").split(" ").slice(-1)[0])} ${odds(o.american)} (${pct(o.fair)})`).join(" · ") : "—";
+    const mv = ml ? ml.outcomes.map(o => o.move).filter(v => v != null) : [];
+    const bigmove = mv.length ? mv.reduce((a, b) => Math.abs(b) > Math.abs(a) ? b : a) : null;
+    if (ml) ml.outcomes.forEach(o => { if (o.move != null && Math.abs(o.move) >= 0.02) moves.push({ game: g.event, side: o.outcome, from: o.open_american, to: o.american, move: o.move }); });
+    const over = tot ? tot.outcomes.find(o => o.outcome.toLowerCase().startsWith("over")) : null;
+    const f5over = f5t ? f5t.outcomes.find(o => o.outcome.toLowerCase().startsWith("over")) : null;
+    const tie = f53 ? f53.outcomes.find(o => /tie|draw/i.test(o.outcome)) : null;
+    rows.push([`<b>${esc(away)}</b> @ <b>${esc(home)}</b>`, esc(g.start_et), g.pulls, fmtML(ml), (bigmove == null || g.pulls < 2) ? "—" : pp(bigmove) + (ml ? ` <span class="cap">(${esc(ml.outcomes.find(o => o.move === bigmove).outcome.split(" ").slice(-1)[0])})</span>` : ""),
+      over ? `${over.handicap} · O ${odds(over.american)} / U ${odds((tot.outcomes.find(o => o.outcome.toLowerCase().startsWith("under")) || {}).american)}` : "—",
+      fmtML(f5), tie ? `${odds(tie.american)} (${pct(tie.implied)})` : "—",
+      f5over ? `${f5over.handicap} · O ${odds(f5over.american)} / U ${odds((f5t.outcomes.find(o => o.outcome.toLowerCase().startsWith("under")) || {}).american)}` : "—"]);
+  });
+  moves.sort((a, b) => Math.abs(b.move) - Math.abs(a.move));
+  const mvTable = moves.length ? table([["game", "side", "open", "now", "move"], ...moves.slice(0, 12).map(m => [esc(m.game), esc(m.side), odds(m.from), odds(m.to), pp(m.move)])]) : `<div class="cap">no moneyline has moved 2pp or more since its first snapshot</div>`;
+  return `<h2>Board <span>${B.games.length} upcoming games · snapshot ${esc(st.generated_utc)}${st.ok ? "" : " · <span class='err'>last pull failed: " + esc(st.error) + "</span>"}</span></h2>
+    ${card("Today's lines", "moneyline, total and first-five markets · fair = vig removed · move = implied change since first snapshot on file", table(rows))}
+    <div class="grid2" style="margin-top:16px">${card("Biggest moneyline moves", "since the first snapshot on file for that game", mvTable)}</div>`;
+}
+function ledgerSection(L) {
+  if (!L.games || !L.games.length) return `<h2>Ledger <span>nothing graded yet</span></h2>`;
+  const S = L.summary, rec = r => `${r.win}-${r.loss}${r.push ? "-" + r.push : ""}`;
+  const recent = [...L.games].reverse().slice(0, 40);
+  const res = (m) => m ? `<span class="${m.result}">${m.result}</span>` : "—";
+  const rows = [["date", "game", "final", "F5", "closing fav (fair)", "ML", "runline", "total", "F5 fav (fair)", "F5 ML", "F5 tie", "F5 total"]];
+  recent.forEach(g => { const M = g.markets; const f = M.game_ml_favourite, q = M.f5_ml_favourite;
+    rows.push([g.date.slice(5), esc(g.event), `${g.score}${g.innings > 9 ? ` (${g.innings})` : ""}`, g.f5 || "—",
+      f ? `${esc(f.favourite.split(" ").slice(-1)[0])} ${odds(f.close)} (${pct(f.fair)})` : "—", res(f), res(M.game_runline_favourite), M.game_total_over ? `${M.game_total_over.line} → ${M.game_total_over.total} ${res(M.game_total_over)}` : "—",
+      q ? `${esc(q.favourite.split(" ").slice(-1)[0])} ${odds(q.close)} (${pct(q.fair)})` : "—", res(q), M.f5_tie ? `${pct(M.f5_tie.close_implied)} ${res(M.f5_tie)}` : "—", M.f5_total_over ? `${M.f5_total_over.line} → ${M.f5_total_over.total} ${res(M.f5_total_over)}` : "—"]); });
+  const sum = table([["market", "record (w-l-p)", "closing fair, mean", "realised"], ["full-game favourite", rec(S.game_ml_favourite), pct(S.fav_mean_fair), pct(S.fav_realised)],
+    ["full-game runline favourite", rec(S.game_runline_favourite), "", ""], ["full-game over", rec(S.game_total_over), "", ""],
+    ["first-five favourite", rec(S.f5_ml_favourite), pct(S.f5_fav_mean_fair), pct(S.f5_fav_realised)], ["first-five over", rec(S.f5_total_over), "", ""],
+    ["first-five tie", rec(S.f5_tie), pct(S.f5_tie_mean_implied), pct(S.f5_tie_rate)]]);
+  const cal = L.calibration && L.calibration.length ? table([["market", "closing fair bucket", "n", "mean fair", "realised", "gap"], ...L.calibration.map(c => [c.market === "game_ml_favourite" ? "full game" : "first five", c.bucket, c.n, pct(c.mean_fair), pct(c.realised), pp(c.realised - c.mean_fair)])]) : "";
+  return `<h2>Ledger <span>${L.games.length} graded games · graded ${esc(L.graded_utc)}</span></h2><div class="grid2">
+    ${card("Scorecard", "the market's own favourites and totals, settled at the closing line", sum, S.fav_mean_fair != null ? `Favourites were priced at ${pct(S.fav_mean_fair)} and won ${pct(S.fav_realised)}; first-five favourites ${pct(S.f5_fav_mean_fair)} vs ${pct(S.f5_fav_realised)}; the F5 tie was priced ${pct(S.f5_tie_mean_implied)} and happened ${pct(S.f5_tie_rate)}. Mean absolute closing-vs-opening move ${pct(S.mean_abs_clv)}. Small samples read as noise until n is in the hundreds.` : "")}
+    ${card("Calibration", "closing fair probability of the favourite vs realised win rate, by 10pp bucket", cal || `<div class="cap">needs more games</div>`)}
+  </div><div style="margin-top:16px">${card("Recent graded games", "newest first · closing line shown · fair = vig removed", table(rows))}</div>`;
+}
+async function main() {
+  const bust = "?t=" + Math.floor(Date.now() / 300000);
+  const [B, L] = await Promise.all([fetch("board.json" + bust).then(r => r.json()), fetch("ledger.json" + bust).then(r => r.json()).catch(() => ({ games: [] }))]);
+  document.getElementById("meta").textContent = `board ${B.status.generated_utc} · every 2 hours 9am–11pm ET via GitHub Actions · Bovada public JSON + MLB Stats API, no keys`;
+  const S = L.summary || {};
+  const chips = [
+    { l: "upcoming games", v: String(B.games.length), s: B.status.ok ? `${B.status.events} on Bovada's board` : "last pull failed" },
+    { l: "graded games", v: String((L.games || []).length), s: L.graded_utc ? `through ${L.graded_utc.slice(0, 10)}` : "—" },
+    S.fav_mean_fair != null ? { l: "favourites", v: `${pct(S.fav_realised)} won`, s: `priced ${pct(S.fav_mean_fair)}` } : null,
+    S.f5_tie_rate != null ? { l: "F5 tie", v: `${pct(S.f5_tie_rate)}`, s: `priced ${pct(S.f5_tie_mean_implied)}` } : null,
+    S.f5_fav_realised != null ? { l: "F5 favourites", v: `${pct(S.f5_fav_realised)} won`, s: `priced ${pct(S.f5_fav_mean_fair)}` } : null,
+  ].filter(Boolean);
+  document.getElementById("chips").innerHTML = chips.map(c => `<div class="chip"><div class="l">${esc(c.l)}</div><div class="v">${esc(c.v)}</div><div class="s">${esc(c.s)}</div></div>`).join("");
+  document.getElementById("root").innerHTML = boardSection(B) + ledgerSection(L);
+  document.getElementById("foot").textContent = "Anthony Russo · odds are Bovada's, scores are MLB's; this page records and grades them and recommends nothing.";
+}
+main().catch(e => { document.getElementById("root").innerHTML = `<div class="err">failed to load: ${esc(e)}</div>`; });
+</script>
+</body></html>
