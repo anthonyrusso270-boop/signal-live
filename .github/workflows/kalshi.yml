@@ -1,7 +1,7 @@
 name: Kalshi macro monitor
 on:
   schedule:
-    - cron: "17 */6 * * *"          # every 6 hours (UTC); Kalshi's public API needs no key
+    - cron: "17 * * * *"             # hourly at :17 UTC; Kalshi's public API needs no key
   workflow_dispatch:
   push:                             # a human push to the monitor's own files runs it immediately
     branches: [main]                # (bot commits made with GITHUB_TOKEN never re-trigger this)

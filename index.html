@@ -254,7 +254,7 @@ async function main() {
   const bust = "?t=" + Math.floor(Date.now() / 300000);
   const [D, H] = await Promise.all([fetch("data.json" + bust).then(r => r.json()), fetch("history.json" + bust).then(r => r.json()).catch(() => [])]);
   const s = D.sections;
-  document.getElementById("meta").textContent = `snapshot ${D.generated_utc} · refreshes every 6 hours via GitHub Actions · public read-only API, no key`;
+  document.getElementById("meta").textContent = `snapshot ${D.generated_utc} · refreshes hourly via GitHub Actions · public read-only API, no key`;
   const fed = s.fed, inf = s.inflation || [], lab = s.labour, gr = s.growth, tr = s.treasuries, en = s.energy;
   const hy = inf.find(r => r.measure === "Headline YoY");
   const chips = [
