@@ -33,6 +33,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add kalshi/data.json kalshi/history.json
           git diff --cached --quiet || git commit -m "kalshi: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase -q origin main        # the MLB bot may have committed meanwhile (different files)
           git push
       # commits made with GITHUB_TOKEN do not trigger the push workflow, so deploy from here
       - uses: actions/configure-pages@v5
